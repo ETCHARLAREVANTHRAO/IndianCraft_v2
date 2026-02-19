@@ -180,24 +180,81 @@ $$
 
 
 ### 2.2 Crowd-Aware Timing Score (CATS)
-Evaluates how well the schedule avoids high-risk crowded time windows.
 
-**Crowd Intensity Mapping ($R$):**
-- Below Average $\rightarrow$ 0
-- Average $\rightarrow$ 0.3
-- Above Average $\rightarrow$ 0.6
-- High $\rightarrow$ 1.0
-
-**Per POI:**
-$$ CATS_{poi} = 1 - R(t_{\text{visit}}) $$
-
-> [!IMPORTANT]
-> If a visit overlaps with **peak hours**, the score is penalized: $CATS_{poi} \leftarrow 0.5 \times CATS_{poi}$.
-
-**Aggregate Score:**
-$$ CATS = \frac{1}{N} \sum CATS_{poi} $$
+Evaluates how well an itinerary **avoids crowded or peak-risk time windows** using
+place-specific crowd intensity information.
 
 ---
+
+#### Inputs (per POI)
+
+- Place name  
+- Arrival time $t_a$  
+- Visit duration $v$  
+- Departure time $t_d = t_a + v$  
+- Crowd-intensity timeline from best-time analysis  
+
+---
+
+#### Crowd Intensity Mapping ($R$)
+
+Each congestion tier is mapped to a **risk value**:
+
+- Below Average $\rightarrow 0$  
+- Average $\rightarrow 0.3$  
+- Above Average $\rightarrow 0.6$  
+- High $\rightarrow 1.0$  
+
+Let:
+
+$$
+R(t) \in [0,1]
+$$
+
+denote the **crowd risk during the visit interval**.
+
+---
+
+#### Visit-Level Score
+
+For a POI visit occurring over interval $[t_a, t_d]$:
+
+$$
+CATS_{poi} = 1 - R([t_a, t_d])
+$$
+
+where $R([t_a, t_d])$ is the **maximum crowd risk encountered during the visit**.
+
+---
+
+#### Peak Overlap Penalty
+
+If the visit **overlaps with defined peak hours**:
+
+$$
+CATS_{poi} \leftarrow 0.5 \times CATS_{poi}
+$$
+
+This penalizes schedules that **enter high-congestion periods**.
+
+---
+
+#### Aggregate Score
+
+For an itinerary with $N$ POI visits:
+
+$$
+CATS = \frac{1}{N} \sum_{i=1}^{N} CATS_{poi}^{(i)}
+$$
+
+---
+
+#### Interpretation
+
+- **CATS → 1** : Visits scheduled in low-crowd periods  
+- **CATS → 0** : Heavy overlap with peak congestion  
+- Enables **human vs LLM comparison of crowd-aware planning**
+
 
 ### 2.3 Transport Delay Absorption Score (TDAS)
 Measures if transport delays can be absorbed without disrupting the entire schedule.
