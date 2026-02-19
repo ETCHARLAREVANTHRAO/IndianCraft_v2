@@ -330,7 +330,7 @@ Assuming empirical delay mean $\mu_{\text{road}}$ and std. deviation $\sigma_{\t
 
 $$
 TDAS_j =
-\Phi\!\left(\frac{B_j - \mu_{\text{road}}}{\sigma_{\text{road}}}\right)
+Esitmated Buffer
 $$
 
 ---
