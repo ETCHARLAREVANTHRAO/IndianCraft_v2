@@ -58,22 +58,44 @@ For each place in an itinerary:
 
 - Place name  
 - Arrival time $t_a$  
-- Departure time $t_d$  
-- Visit duration $v$  
+- Base visit duration $v$  
 - Travel time to next place $T_{travel}$  
 - Category of place $c$  
+- **Congestion tier factor** $C_f$ derived from best-time analysis  
+
+Typical congestion factors:
+
+| Tier | Meaning | $C_f$ |
+|------|---------|-------|
+| L | Low | 1.0 |
+| A | Average | 1.2 |
+| BA | Below Average | 1.5 |
+| AA | Above Average | 1.8 |
+| H | High | 2.5+ |
 
 ---
 
-## Step 1: Actual Buffer Time
+## Step 1: Congestion-Adjusted Buffer Time
 
-The **actual buffer time** between two consecutive visits is:
+First compute the **congestion-adjusted visit duration**:
+
+$$
+v_{adj} = v \times C_f
+$$
+
+Then compute the **effective departure time**:
+
+$$
+t_d = t_a + v_{adj}
+$$
+
+The **actual buffer time** between consecutive visits is:
 
 $$
 B_{actual} = (t_{next\_arrival} - t_d) - T_{travel}
 $$
 
-This represents **free time available beyond required travel**.
+This represents **free time available beyond required travel after accounting for crowd-induced delay**.
 
 ---
 
@@ -155,6 +177,7 @@ $$
 - **BAS ≈ 1** → Highly realistic temporal planning  
 - **BAS ≈ 0** → Poor or unrealistic timing  
 - Enables **human vs LLM comparison**
+
 
 ### 2.2 Crowd-Aware Timing Score (CATS)
 Evaluates how well the schedule avoids high-risk crowded time windows.
