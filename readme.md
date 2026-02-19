@@ -257,18 +257,146 @@ $$
 
 
 ### 2.3 Transport Delay Absorption Score (TDAS)
-Measures if transport delays can be absorbed without disrupting the entire schedule.
 
-**For transport segment $j$:**
-$$ TDAS_j = P(B_j \geq D_j) $$
-
-- **Train Case**: $TDAS_j = I(B_j \geq \mu_{\text{delay}})$
-- **Flight Case**: $TDAS_j = p_{\text{on-time}} + (1 - p_{\text{on-time}}) \Phi\left(\frac{B_j - \mu}{\sigma}\right)$
-
-**Aggregate Score:**
-$$ TDAS = \frac{1}{M} \sum_{j=1}^{M} TDAS_j $$
+Measures whether **transportation delays can be absorbed by the available temporal buffer**
+without disrupting the overall itinerary.
 
 ---
+
+#### Inputs (per transport segment $j$)
+
+- Transportation mode $m_j \in \{\text{flight, train, bus, cab}\}$  
+- Scheduled departure time $t_{\text{dep}}^{(j)}$  
+- Scheduled arrival time $t_{\text{arr}}^{(j)}$  
+- Available buffer after arrival $B_j$  
+- Historical/statistical delay information for the given mode  
+
+---
+
+#### Step 1: Delay Modeling by Transport Mode
+
+Let $D_j$ denote the **random delay duration**.
+
+---
+
+##### **Train — Weighted Historical Delay Mean**
+
+Delay expectation is computed using **multi-horizon historical averages**:
+
+$$
+\mu_{\text{train}} =
+\sum_{h \in \{1w,1m,3m,6m,1y\}} w_h \; d_h
+$$
+
+Where:
+
+- $d_h$ = average delay over horizon $h$  
+- $w_h$ = normalized weight such that $\sum w_h = 1$  
+
+**Delay absorption indicator:**
+
+$$
+TDAS_j = I(B_j \ge \mu_{\text{train}})
+$$
+
+where $I(\cdot)$ is the **indicator function**.
+
+---
+
+##### **Flight — On-Time Probability + Delay Distribution**
+
+Let:
+
+- $p_{\text{on-time}}$ = probability of zero delay  
+- $\mu_{\text{late}}, \sigma_{\text{late}}$ = mean and std. deviation of delay when late  
+- $\Phi(\cdot)$ = standard normal CDF  
+
+Then:
+
+$$
+TDAS_j =
+p_{\text{on-time}}
++
+(1 - p_{\text{on-time}})
+\;
+\Phi\!\left(\frac{B_j - \mu_{\text{late}}}{\sigma_{\text{late}}}\right)
+$$
+
+---
+
+##### **Bus and Cab — Empirical Road Delay Distribution**
+
+Assuming empirical delay mean $\mu_{\text{road}}$ and std. deviation $\sigma_{\text{road}}$:
+
+$$
+TDAS_j =
+\Phi\!\left(\frac{B_j - \mu_{\text{road}}}{\sigma_{\text{road}}}\right)
+$$
+
+---
+
+#### Step 2: Category-Aware Safe Buffer Range
+
+Each transport mode has an **expected safe buffer interval**:
+
+$$
+B_j \in [a_{m_j}, b_{m_j}]
+$$
+
+**Soft adequacy score:**
+
+$$
+Soft_j =
+\begin{cases}
+1, & B_j \in [a_{m_j}, b_{m_j}] \\
+0, & \text{otherwise}
+\end{cases}
+$$
+
+---
+
+#### Step 3: Quantitative Buffer Deviation
+
+$$
+D^{buf}_j =
+\begin{cases}
+0, & B_j \in [a_{m_j}, b_{m_j}] \\
+\min(|B_j - a_{m_j}|,\ |B_j - b_{m_j}|), & \text{otherwise}
+\end{cases}
+$$
+
+$$
+Q_j = \frac{D^{buf}_j}{b_{m_j} - a_{m_j}}
+$$
+
+---
+
+#### Step 4: Final Segment Score
+
+Combine **delay absorption probability** with **buffer realism penalty**:
+
+$$
+TDAS_j^{*} = TDAS_j \times (1 - Q_j)
+$$
+
+---
+
+#### Aggregate Score
+
+For an itinerary with $M$ transport segments:
+
+$$
+TDAS = \frac{1}{M} \sum_{j=1}^{M} TDAS_j^{*}
+$$
+
+---
+
+#### Interpretation
+
+- **TDAS → 1** : Delays are highly absorbable; itinerary remains stable  
+- **TDAS → 0** : High disruption risk due to insufficient buffer  
+- Enables **robust comparison of human vs LLM transport planning**
+
 
 ### 2.4 Schedule Robustness Score (SRS)
 Evaluates the global resilience of the entire itinerary to cumulative uncertainty.
